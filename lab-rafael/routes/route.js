@@ -15,11 +15,10 @@ const Picture = require('../models/picture');
 
 router.route('/upload')
   .post(upload.single('picture'), (req, res, next) => {
-    let ext = path.extname(req.file.originalname);
     let params = {
       ACL: 'public-read',
       Bucket: process.env.AWS_BUCKET,
-      Key: `${req.file.filename}${ext}`,
+      Key: `${req.file.originalname}`,
       Body: fs.createReadStream(req.file.path)
     };
 
@@ -45,6 +44,13 @@ router.route('/uploads')
   });
 
 router.route('/upload/:_id')
+  .get((req, res) => {
+    Picture.findById(req.params._id)
+      .then(picture => {
+        res.send(picture);
+      })
+      .catch(err => res.send(err.message));
+  })
   .delete((req, res) => {
     Picture.findByIdAndRemove(req.params._id)
       .then(picture => {
@@ -55,7 +61,9 @@ router.route('/upload/:_id')
         };
 
         s3.deleteObject(params, (err, data) => {
-          if (err) console.log(err);
+          if (err) {
+           console.log(err);   
+          }
           res.status(204).send('Successfuly deleted image');
         });
       })
